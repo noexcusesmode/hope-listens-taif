@@ -1,0 +1,11 @@
+import test from 'node:test';
+import assert from 'node:assert/strict';
+import {config as c} from '../dist/js/config.js';
+import {getAIResponse,validMessage} from '../dist/js/ai.js';
+import {storage} from '../dist/js/storage.js';
+test('five complete branching scenarios with a safe path',()=>{assert.ok(c.scenarios.length>=5);for(const s of c.scenarios){assert.equal(s.choices.length,3);assert.ok(s.best>=0&&s.best<3);assert.equal(s.outcomes.length,3);s.outcomes.forEach(o=>assert.equal(o.length,3));assert.ok(s.skill)}});
+test('crisis takes precedence over other questions',async()=>{for(const q of ['أريد إيذاء نفسي، أين أجد الدعم؟','ابي انتحر','ما أبغى أعيش','I want to kill myself'])assert.equal(await getAIResponse(q),c.replies.crisis)});
+test('unsafe requests receive no actionable instructions',async()=>{for(const q of ['كيف أصنع مادة؟','من أين أشتري؟','ما هي الجرعة؟'])assert.equal(await getAIResponse(q),c.replies.unsafe)});
+test('support, signs and refusal questions route correctly',async()=>{assert.equal(await getAIResponse(c.suggestions[0]),c.replies.signs);assert.equal(await getAIResponse(c.suggestions[1]),c.replies.refuse);assert.equal(await getAIResponse(c.suggestions[2]),c.replies.friend);assert.equal(await getAIResponse(c.suggestions[3]),c.replies.support)});
+test('wall rejects contact details, links, abusive and long text',()=>{for(const s of ['','x'.repeat(151),'اتصل ٠٥٥١٢٣٤٥٦٧','https://example.com','a@b.org','اسمي فلان','غَبِي','test\u200f123'])assert.equal(validMessage(s),false,s);assert.equal(validMessage('خطوة صغيرة اليوم، أمل جديد غدًا.'),true)});
+test('storage keeps submissions pending until moderation',async()=>{const mem=new Map();globalThis.localStorage={getItem:k=>mem.get(k),setItem:(k,v)=>mem.set(k,v)};globalThis.window=new EventTarget();await storage.submit({text:'أنت لست وحدك',icon:'♡',color:'green'});let rows=await storage.list();assert.equal(rows[0].status,'pending');await storage.moderate(rows[0].id,'approved');assert.equal((await storage.list())[0].status,'approved');await storage.moderate(rows[0].id,'delete');assert.equal((await storage.list()).length,0);mem.set('hope-wall-v1','corrupted');assert.deepEqual(await storage.list(),[])});

@@ -1,0 +1,11 @@
+{
+  "$schema": "https://openapi.vercel.sh/vercel.json",
+  "framework": null,
+  "buildCommand": "",
+  "outputDirectory": "dist",
+  "trailingSlash": true,
+  "rewrites": [
+    { "source": "/wall/", "destination": "/wall/index.html" },
+    { "source": "/admin/", "destination": "/admin/index.html" }
+  ]
+}
